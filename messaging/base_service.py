@@ -7,12 +7,12 @@ import grpc
 from grpc import ServicerContext
 from google.protobuf.empty_pb2 import Empty
 
-from messaging_pb2 import (
+from messaging.messaging_pb2 import (
     PostRequest,
     GetResponse,
 )
 
-from messaging_pb2_grpc import (
+from messaging.messaging_pb2_grpc import (
     BaseServicer,
     add_BaseServicer_to_server,
 )

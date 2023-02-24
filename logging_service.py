@@ -1,4 +1,4 @@
-from base_service import (
+from messaging.base_service import (
     BaseService,
     GetResponse,
     PostRequest,

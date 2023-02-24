@@ -1,14 +1,14 @@
 from uuid import uuid4
 
-from base_service import (
+from messaging.base_service import (
     BaseService,
     GetResponse,
     PostRequest,
     Empty,
 )
 
-from grpc import insecure_channel
-from messaging_pb2_grpc import BaseStub
+from grpc import insecure_channel, RpcError
+from messaging.messaging_pb2_grpc import BaseStub
 
 
 class FacadeService(BaseService):
@@ -30,7 +30,7 @@ class FacadeService(BaseService):
         return GetResponse(messages=f'logging_service: {logging.messages}; messages_service: {messages.messages}')
 
     def _post(self, request: PostRequest) -> Empty:
-        request = PostRequest(uuid=str(uuid4()), message=request.message)
+        request.uuid = str(uuid4())
         # TODO: add retrying when failed
         self._logging_service.post(request)
         self._messages_service.post(request)
