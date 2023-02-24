@@ -1,0 +1,20 @@
+syntax = "proto3";
+import "google/protobuf/empty.proto";
+
+message MessageWithUuid {
+
+}
+
+message GetResponse {
+    string messages = 1;
+}
+
+message PostRequest {
+    string uuid = 1;
+    string message = 2;
+}
+
+service Base {
+    rpc get(google.protobuf.Empty) returns (GetResponse);
+    rpc post(PostRequest) returns (google.protobuf.Empty);
+}
