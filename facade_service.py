@@ -33,8 +33,8 @@ class FacadeService(BaseService):
         logging_response = GetResponse()
         messages_response = GetResponse()
 
-        logging_thread = Thread(target=self._post_to_logging, args=(logging_response,))
-        messages_thread = Thread(target=self._post_to_messages, args=(messages_response,))
+        logging_thread = Thread(target=self._get_from_logging, args=(logging_response,))
+        messages_thread = Thread(target=self._get_from_messages, args=(messages_response,))
 
         logging_thread.start()
         messages_thread.start()
@@ -48,7 +48,7 @@ class FacadeService(BaseService):
     def _get_from_logging(self, logging_response: GetResponse) -> GetResponse:
         while True:
             try:
-                logging_response = self._logging_service.get(Empty())
+                logging_response.messages = self._logging_service.get(Empty()).messages
                 return
             except RpcError:
                 logging.error('Failed to get from logging service, retrying...')
@@ -57,7 +57,7 @@ class FacadeService(BaseService):
     def _get_from_messages(self, messages_response: GetResponse) -> GetResponse:
         while True:
             try:
-                messages_response = self._messages_service.get(Empty())
+                messages_response.messages = self._messages_service.get(Empty()).messages
                 return
             except RpcError:
                 logging.error('Failed to get from messages service, retrying...')
