@@ -15,5 +15,5 @@ class MessagesService(BaseService):
 
 
 if __name__ == '__main__':
-    service = MessagesService('[::]:50053')
+    service = MessagesService('[::]:50055')
     service.run()

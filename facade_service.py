@@ -20,14 +20,15 @@ class FacadeService(BaseService):
     def __init__(
             self,
             addr: str | bytes,
-            logging_addr: str | bytes,
+            logging_addrs: list[str | bytes],
             messages_addr: str | bytes
     ):
         super().__init__(addr)
-        self._logging_channel = insecure_channel(logging_addr)
+        self._logging_channels = [insecure_channel(logging_addr) for logging_addr in logging_addrs]
         self._messages_channel = insecure_channel(messages_addr)
-        self._logging_service = BaseStub(self._logging_channel)
+        self._logging_services = [BaseStub(logging_channel) for logging_channel in self._logging_channels]
         self._messages_service = BaseStub(self._messages_channel)
+        self._round_robin_idx = -1
 
     def _get(self, request: Empty) -> GetResponse:
         logging_response = GetResponse()
@@ -48,7 +49,8 @@ class FacadeService(BaseService):
     def _get_from_logging(self, logging_response: GetResponse) -> GetResponse:
         while True:
             try:
-                logging_response.messages = self._logging_service.get(Empty()).messages
+                self._round_robin_idx = (self._round_robin_idx + 1) % len(self._logging_services)
+                logging_response.messages = self._logging_services[self._round_robin_idx].get(Empty()).messages
                 return
             except RpcError:
                 logging.error('Failed to get from logging service, retrying...')
@@ -79,7 +81,8 @@ class FacadeService(BaseService):
     def _post_to_logging(self, request: PostRequest) -> None:
         while True:
             try:
-                self._logging_service.post(request)
+                self._round_robin_idx = (self._round_robin_idx + 1) % len(self._logging_services)
+                self._logging_services[self._round_robin_idx].post(request)
                 return
             except RpcError:
                 logging.error('Failed to post to logging service, retrying...')
@@ -95,10 +98,11 @@ class FacadeService(BaseService):
                 time.sleep(1)
 
     def __del__(self):
-        self._logging_channel.close()
+        for logging_channel in self._logging_channels:
+            logging_channel.close()
         self._messages_channel.close()
 
 
 if __name__ == '__main__':
-    service = FacadeService('[::]:50051', '[::]:50052', '[::]:50053')
+    service = FacadeService('[::]:50051', ['[::]:50052', '[::]:50053', '[::]:50054'], '[::]:50055')
     service.run()
