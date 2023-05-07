@@ -2,7 +2,7 @@ from concurrent import futures
 from abc import ABC, abstractmethod
 from signal import signal, SIGTERM
 import logging
-
+from hazelcast.client import HazelcastClient
 import grpc
 from grpc import ServicerContext
 from google.protobuf.empty_pb2 import Empty
@@ -17,7 +17,6 @@ from messaging.messaging_pb2_grpc import (
     add_BaseServicer_to_server,
 )
 
-messages = {}
 logging.basicConfig(level=logging.INFO)
 
 
@@ -25,6 +24,10 @@ class BaseService(BaseServicer, ABC):
     def __init__(self, addr: str | bytes):
         super().__init__()
         self._addr = addr
+        self._thread_pool = futures.ThreadPoolExecutor(max_workers=8)
+        self._client = HazelcastClient(
+            cluster_members=['127.0.0.1:5701', '127.0.0.1:5702', '127.0.0.1:5703']
+        )
 
     @abstractmethod
     def _get(self, request: Empty) -> GetResponse:
@@ -47,7 +50,7 @@ class BaseService(BaseServicer, ABC):
         return resp
 
     def run(self) -> None:
-        server = grpc.server(futures.ThreadPoolExecutor(max_workers=8))
+        server = grpc.server(self._thread_pool)
         add_BaseServicer_to_server(self, server)
         server.add_insecure_port(self._addr)
         server.start()
@@ -59,3 +62,6 @@ class BaseService(BaseServicer, ABC):
 
         signal(SIGTERM, handle_sigterm)
         server.wait_for_termination()
+
+    def __del__(self):
+        self._client.shutdown()
