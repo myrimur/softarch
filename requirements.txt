@@ -1,4 +1,11 @@
+certifi==2023.5.7
+charset-normalizer==3.1.0
 grpcio==1.51.1
 grpcio-tools==1.51.1
 hazelcast-python-client==5.1
+idna==3.4
 protobuf==4.21.12
+python-consul==1.1.0
+requests==2.30.0
+six==1.16.0
+urllib3==2.0.2
