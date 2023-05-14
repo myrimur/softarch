@@ -11,9 +11,11 @@ from messaging.base_service import (
 
 
 class MessagesService(BaseService):
-    def __init__(self, addr: str | bytes):
-        super().__init__(addr)
-        self._queue = self._client.get_queue('messages-queue').blocking()
+    def __init__(self, port: str | bytes):
+        super().__init__(port)
+        self._queue = self._hazelcast.get_queue(
+            self._consul.kv.get('queue-name')[1]['Value'].decode('utf-8')
+        ).blocking()
         self._messages = []
         self._lock = Lock()
 

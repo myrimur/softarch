@@ -1,3 +1,4 @@
+import sys
 from uuid import uuid4
 from concurrent.futures import wait
 from random import choice
@@ -16,18 +17,21 @@ from messaging.messaging_pb2_grpc import BaseStub
 
 
 class FacadeService(BaseService):
-    def __init__(
-            self,
-            addr: str | bytes,
-            logging_addrs: list[str | bytes],
-            messages_addrs: list[str | bytes]
-    ):
-        super().__init__(addr)
-        self._logging_channels = [insecure_channel(addr) for addr in logging_addrs]
-        self._messages_channels = [insecure_channel(addr) for addr in messages_addrs]
+    def __init__(self, port: str | bytes):
+        super().__init__(port)
+        self._logging_channels = [
+            insecure_channel(serv['Address'] + ':' + str(serv['ServicePort'])) for serv in
+            self._consul.catalog.service('LoggingService')[1]
+        ]
+        self._messages_channels = [
+            insecure_channel(serv['Address'] + ':' + str(serv['ServicePort'])) for serv in
+            self._consul.catalog.service('MessagesService')[1]
+        ]
         self._logging_services = [BaseStub(chan) for chan in self._logging_channels]
         self._messages_services = [BaseStub(chan) for chan in self._messages_channels]
-        self._queue = self._client.get_queue('messages-queue')
+        self._queue = self._hazelcast.get_queue(
+            self._consul.kv.get('queue-name')[1]['Value'].decode('utf-8')
+        )
 
     def _get(self, request: Empty) -> GetResponse:
         logging_response = GetResponse()
@@ -81,4 +85,4 @@ class FacadeService(BaseService):
 
 
 if __name__ == '__main__':
-    FacadeService('[::]:50051', ['[::]:50052', '[::]:50053', '[::]:50054'], ['[::]:50055', '[::]:50056']).run()
+    FacadeService(sys.argv[1]).run()
